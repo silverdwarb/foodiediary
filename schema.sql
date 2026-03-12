@@ -15,8 +15,8 @@ CREATE TABLE IF NOT EXISTS recipes (
 
 -- Create the join table for the many-to-many relationship
 CREATE TABLE IF NOT EXISTS recipe_ingredients (
-    recipe_id INTEGER REFERENCES recipes(id),
-    ingredient_id INTEGER REFERENCES ingredients(id),
+    recipe_id INTEGER REFERENCES recipes(id) ON DELETE CASCADE,
+    ingredient_id INTEGER REFERENCES ingredients(id) ON DELETE CASCADE,
     amount TEXT,
     PRIMARY KEY (recipe_id, ingredient_id)
 );
@@ -25,3 +25,18 @@ CREATE TABLE IF NOT EXISTS recipe_notes (
     recipe_id INTEGER PRIMARY KEY REFERENCES recipes(id) ON DELETE CASCADE,
     notes TEXT
 );
+
+CREATE TABLE IF NOT EXISTS cook_logs (
+    id SERIAL PRIMARY KEY,
+    recipe_id INTEGER REFERENCES recipes(id),
+    cook_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    rating INTEGER CHECK (rating BETWEEN 1 AND 5),
+    session_notes TEXT
+);
+
+-- comment out the below later cause ur an idiot <this guy is an idiot it didnt take more than three seconds
+/*insert INTO ingredients (name) Values
+('salt'),
+('pepper'),
+('rice');*/
+

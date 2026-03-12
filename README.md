@@ -1,36 +1,43 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# The Culinary Knowledge Base
+
+A personal, research-driven cookbook and laboratory notebook designed to document a lifetime of cooking, track experiments, and synthesize culinary knowledge. 
+
+## Project Vision
+
+This project is a personal mission to document every dish I have ever cooked. Beyond a static list of recipes, this application serves as a searchable database that tracks technique evolution, ingredient interactions, and experimental outcomes, improving my cooking craft through data-backed learning.
+
+## Roadmap
+
+### Phase 0: The Foundation (MVP)
+
+* **Database Schema:** Implementation of core relational tables (`Recipes`, `Ingredients`, `Recipe_Ingredients` junction).
+* **Cook Logs:** A chronological history of every cooking session, utilizing a `JSONB` column for flexible experimental metadata (alterations, technique changes, etc.).
+* **Full-Text Search:** Basic search capabilities for recipes and ingredients.
+* **Wiki Infrastructure:** Basic note-taking features for ingredients and recipes.
+
+### Phase 1: Relational Normalization
+
+* **Schema Migration:** Migrating the flexible `JSONB` logs into a structured 4-table schema (`Ingredients alterations`, `Techniques alteration`, `Equipment alteration`,) for deep analytical querying.
+* **Ingredient Systematization:** Adding metadata for ingredient usage(eg. breading, braising, flavoring,), core properties (e.g., protein, fiber, starch), and food categories(soups, salads, main courses, etc. *this is extremely tbd rn*).
+* **Deterministic Recommender:** A rules-based engine to suggest ingredient complements.
+
+### Phase 2: Knowledge Synthesis & Safety
+
+* **Hazard Detection:** An automated severity-based system to flag potential safety risks (e.g., food safety, chemical reactions, or ingredient interactions).
+* **Non-Deterministic Recommender:** Integrating web-scraped data to suggest flavor pairings beyond basic rules.
+* **Graph Visualization:** A visual representation of recipe hierarchies and ingredient dependencies.
+
+### Phase 3: Advanced Optimization
+
+* **Audit Logging:** Full history tracking ("Ctrl+Z") for recipe notes and alterations.
+* **Performance:** Optimized indexing for high-speed retrieval of complex hierarchies.
+* **Automated Migrations:** A version-controlled framework to evolve the schema as culinary knowledge grows.
+
+## Technical Design Trade-offs
+
+* **Why JSONB?** Initially selected for Phase 0 to facilitate rapid experimental iteration without the overhead of complex relational mapping.
+* **Why Normalization?** Phase 1 will migrate data to a 4-table schema to ensure data integrity and enable complex cross-log analysis (e.g., comparing technique efficiency across years).
 
 ## Getting Started
 
-First, run the development server:
-
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
-```
-
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
-
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
-
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
-
-## Learn More
-
-To learn more about Next.js, take a look at the following resources:
-
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
-
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+*I dont have a getting started yet cause theres nothing to start with*
