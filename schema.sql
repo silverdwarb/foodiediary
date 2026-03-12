@@ -28,9 +28,10 @@ CREATE TABLE IF NOT EXISTS recipe_notes (
 
 CREATE TABLE IF NOT EXISTS cook_logs (
     id SERIAL PRIMARY KEY,
-    recipe_id INTEGER REFERENCES recipes(id),
+    recipe_id INTEGER REFERENCES recipes(id) ON DELETE CASCADE,
     cook_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     rating INTEGER CHECK (rating BETWEEN 1 AND 5),
+    Alterations JSONB,
     session_notes TEXT
 );
 
@@ -39,4 +40,16 @@ CREATE TABLE IF NOT EXISTS cook_logs (
 ('salt'),
 ('pepper'),
 ('rice');*/
+/*
+INSERT INTO cook_logs (recipe_id, rating, alterations, session_notes)
+VALUES (
+    1, 
+    5, 
+    '{"ingredient_sub": "honey instead of sugar", "equipment": "cast-iron skillet"}', 
+    'The crust was much better this time.'
+);
+
+SELECT id, recipe_id, alterations 
+FROM cook_logs;*/
+
 
