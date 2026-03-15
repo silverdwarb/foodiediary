@@ -1,16 +1,34 @@
 import { query } from '@/lib/db' ; 
 // this is just a buncha functions to use 
 
-export async function getRecipeWithIngredients(recipeId: number) {
-  // We join tables to fetch recipe details + ingredient names + amounts
+export async function getFullRecipe(recipeId: number) {
   const queryText = `
-    SELECT r.title, i.name, ri.amount 
+    SELECT 
+      r.id,
+      r.title,
+      -- Get Recipe Notes
+      rn.notes AS recipe_notes,
+      -- Bundle ingredients into a JSON array
+      (SELECT json_agg(json_build_object('name', i.name, 'amount', ri.amount))
+       FROM recipe_ingredients ri
+       JOIN ingredients i ON i.id = ri.ingredient_id
+       WHERE ri.recipe_id = r.id) AS ingredients,
+      -- Bundle equipment into a JSON array
+      (SELECT json_agg(json_build_object('title', e.title, 'care', e.care))
+       FROM recipe_equipment re
+       JOIN equipment e ON e.id = re.equipment_id
+       WHERE re.recipe_id = r.id) AS equipment,
+      -- Bundle techniques into a JSON array
+      (SELECT json_agg(t.tech_name)
+       FROM recipe_techniques rt
+       JOIN techniques t ON t.id = rt.technique_id
+       WHERE rt.recipe_id = r.id) AS techniques
     FROM recipes r
-    JOIN recipe_ingredients ri ON r.id = ri.recipe_id
-    JOIN ingredients i ON ri.ingredient_id = i.id
+    LEFT JOIN recipe_notes rn ON r.id = rn.recipe_id
     WHERE r.id = $1;
   `;
-  return await query(queryText, [recipeId]);
+  const result = await query(queryText, [recipeId]);
+  return result.rows[0]; // Returns one clean object
 }
 
 export async function addIngredient(name: string) {

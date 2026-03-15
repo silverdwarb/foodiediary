@@ -1,21 +1,21 @@
 import { NextResponse } from 'next/server';
-import { getRecipeWithIngredients } from '@/lib/queries';
-import {query} from '@/lib/db'
+import { getFullRecipe } from '@/lib/queries';
+import { query } from '@/lib/db';
 
-// The 'params' argument automatically captures the [id] from the URL
 export async function GET(
   request: Request, 
   { params }: { params: Promise<{ id: string }> }
 ) {
-  const { id } = await params; // Next.js 15+ syntax
-
-  const data = await getRecipeWithIngredients(Number(id));
+  const { id } = await params;
+  const recipe = await getFullRecipe(Number(id));
   
-  if (data.rows.length === 0) {
+  // Since 'recipe' is now the object (or undefined), check for existence directly
+  if (!recipe) {
     return NextResponse.json({ error: 'Recipe not found' }, { status: 404 });
   }
 
-  return NextResponse.json(data.rows);
+  // Return the object directly
+  return NextResponse.json(recipe);
 }
 
 export async function DELETE(
@@ -24,10 +24,9 @@ export async function DELETE(
 ) {
   const { id } = await params;
   
-  // First, remove the links in the join table
-  await query('DELETE FROM recipe_ingredients WHERE recipe_id = $1', [id]);
-  // Then, delete the recipe itself
-  const result = await query('DELETE FROM recipes WHERE id = $1', [id]);
+  // Just delete the recipe. Let the database handle the rest via CASCADE.
+  // This is much faster and less error-prone.
+  const result = await query('DELETE FROM recipes WHERE id = $1', [Number(id)]);
 
   if (result.rowCount === 0) {
     return NextResponse.json({ error: 'Recipe not found' }, { status: 404 });

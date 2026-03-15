@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { query } from '@/lib/db';
-import { getRecipeWithIngredients } from '@/lib/queries';
+import { getFullRecipe } from '@/lib/queries';
 
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
