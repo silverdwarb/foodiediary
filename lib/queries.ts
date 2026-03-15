@@ -48,3 +48,50 @@ export async function assignIngredientToRecipe(
   );
 }
 
+// Add a new flavor
+export async function addFlavor(name: string) {
+  return await query(
+    'INSERT INTO flavors (name) VALUES ($1) RETURNING *',
+    [name]
+  );
+}
+
+// Add a new technique with notes
+export async function addTechnique(name: string, notes: string) {
+  return await query(
+    'INSERT INTO techniques (tech_name, notes) VALUES ($1, $2) RETURNING *',
+    [name, notes]
+  );
+}
+
+// Add equipment. Note: Pass care as a JSON object
+export async function addEquipment(title: string, notes: string, care: object) {
+  return await query(
+    'INSERT INTO equipment (title, notes, care) VALUES ($1, $2, $3) RETURNING *',
+    [title, notes, JSON.stringify(care)]
+  );
+}
+
+// Link Recipe to Equipment
+export async function linkRecipeEquipment(recipeId: number, equipmentId: number) {
+  return await query(
+    'INSERT INTO recipe_equipment (recipe_id, equipment_id) VALUES ($1, $2) ON CONFLICT DO NOTHING',
+    [recipeId, equipmentId]
+  );
+}
+
+// Link Recipe to Technique
+export async function linkRecipeTechnique(recipeId: number, techniqueId: number) {
+  return await query(
+    'INSERT INTO recipe_techniques (recipe_id, technique_id) VALUES ($1, $2) ON CONFLICT DO NOTHING',
+    [recipeId, techniqueId]
+  );
+}
+
+// Link Recipe to Flavor
+export async function linkRecipeFlavor(recipeId: number, flavorId: number) {
+  return await query(
+    'INSERT INTO recipe_flavors (recipe_id, flavor_id) VALUES ($1, $2) ON CONFLICT DO NOTHING',
+    [recipeId, flavorId]
+  );
+}
