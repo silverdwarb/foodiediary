@@ -1,10 +1,16 @@
 'use client';
-import { useState, useEffect, useMemo } from 'react';
-import { fetchFullRecipe, handleCreateRecipe} from './actions';
+import { useState, useEffect, useMemo, useCallback } from 'react';
+import { 
+  fetchEntities, 
+  fetchEntityById,
+  handleCreateEntity, 
+  handleUpdateEntity,
+  handleDeleteEntity 
+} from './actions';
 import { EntityType, TableEntity, Recipe, Ingredient, Technique, Equipment, Flavor, CookLog } from '@/lib/types';
 import './globals.css';
 
-// Column definitions for each entity type
+// Column definitions (unchanged)
 const COLUMNS: Record<EntityType, Array<{ key: string; label: string; sortable?: boolean }>> = {
   recipes: [
     { key: 'id', label: 'ID', sortable: true },
@@ -47,34 +53,107 @@ export default function FoodieDiary() {
   const [filters, setFilters] = useState<Record<string, any>>({});
   const [sortConfig, setSortConfig] = useState<{ key: string; direction: 'asc' | 'desc' } | null>(null);
   const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [isCreating, setIsCreating] = useState(false);
 
-  // Fetch entities when type or filters change
+  // ✅ Fetch entities from Server Action
+  const loadEntities = useCallback(async () => {
+    setIsLoading(true);
+    setError(null);
+    try {
+      const data = await fetchEntities(currentType, {
+        search: searchQuery || undefined,
+        filters: Object.keys(filters).length > 0 ? filters : undefined,
+        sort: sortConfig || undefined,
+      });
+      setEntities(data);
+    } catch (err) {
+      console.error('Failed to load entities:', err);
+      setError('Failed to load data. Please try again.');
+    } finally {
+      setIsLoading(false);
+    }
+  }, [currentType, searchQuery, filters, sortConfig]);
+
+  // ✅ Load entities when dependencies change
   useEffect(() => {
-    const fetchEntities = async () => {
-      setIsLoading(true);
-      try {
-        // TODO: Replace with actual API calls based on currentType
-        // Example: const data = await fetchRecipes({ search: searchQuery, filters });
-        // For now, mock data:
-        const mockData: TableEntity[] = currentType === 'recipes' 
-          ? [{ id: 1, title: 'Pasta Carbonara', notes: 'Classic Roman dish' }] 
-          : [];
-        setEntities(mockData);
-      } catch (error) {
-        console.error('Failed to fetch:', error);
-      } finally {
-        setIsLoading(false);
-      }
-    };
-    
-    fetchEntities();
-  }, [currentType, searchQuery, filters]);
+    loadEntities();
+  }, [loadEntities]);
 
-  // Filter and sort entities client-side (for demo; do server-side in production)
+  // ✅ Load full entity details when a row is selected
+  const handleEntitySelect = async (entity: TableEntity) => {
+    try {
+      const fullEntity = await fetchEntityById(currentType, entity.id);
+      setSelectedEntity(fullEntity);
+    } catch (err) {
+      console.error('Failed to load entity details:', err);
+      // Fallback to partial data
+      setSelectedEntity(entity);
+    }
+  };
+
+  // ✅ Handle Save (Create or Update)
+  const handleSave = async () => {
+    if (!selectedEntity) return;
+    
+    setIsLoading(true);
+    try {
+      if (selectedEntity.id) {
+        // Update existing
+        await handleUpdateEntity(currentType, selectedEntity.id, selectedEntity);
+      } else {
+        // Create new
+        const result = await handleCreateEntity(currentType, selectedEntity);
+        if (result.success && result.data?.id) {
+          setSelectedEntity({ ...selectedEntity, id: result.data.id });
+        }
+      }
+      // Refresh list and close editor
+      await loadEntities();
+      setSelectedEntity(null);
+    } catch (err: any) {
+      console.error('Save failed:', err);
+      setError(err.message || 'Failed to save. Please try again.');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  // ✅ Handle Delete
+  const handleDelete = async () => {
+    if (!selectedEntity?.id) return;
+    if (!confirm(`Delete this ${currentType.slice(0, -1)}?`)) return;
+    
+    try {
+      await handleDeleteEntity(currentType, selectedEntity.id);
+      await loadEntities();
+      setSelectedEntity(null);
+    } catch (err: any) {
+      console.error('Delete failed:', err);
+      setError(err.message || 'Failed to delete.');
+    }
+  };
+
+  // ✅ Handle New Entity
+  const handleNew = () => {
+    // Create empty entity based on type
+    const emptyEntity: Partial<TableEntity> = {
+      id: undefined, // No ID = new entity
+      ...(currentType === 'recipes' && { title: '', notes: '' }),
+      ...(currentType === 'ingredients' && { name: '', notes: '' }),
+      ...(currentType === 'techniques' && { tech_name: '', notes: '' }),
+      ...(currentType === 'equipment' && { title: '', notes: '', care: {} }),
+      ...(currentType === 'flavors' && { name: '' }),
+      ...(currentType === 'cook_logs' && { recipe_id: undefined, rating: undefined }),
+    };
+    setSelectedEntity(emptyEntity as TableEntity);
+    setIsCreating(true);
+  };
+
+  // ✅ Client-side filter/sort (optional; server-side is better for large datasets)
   const filteredEntities = useMemo(() => {
     let result = [...entities];
     
-    // Search filter
     if (searchQuery) {
       const query = searchQuery.toLowerCase();
       result = result.filter(entity => 
@@ -84,12 +163,10 @@ export default function FoodieDiary() {
       );
     }
     
-    // Attribute filters (example: rating >= 4)
     if (filters.rating) {
       result = result.filter(e => (e as any).rating >= filters.rating);
     }
     
-    // Sorting
     if (sortConfig) {
       result.sort((a, b) => {
         const aVal = (a as any)[sortConfig.key];
@@ -110,20 +187,10 @@ export default function FoodieDiary() {
     }));
   };
 
-  const handleEntitySelect = (entity: TableEntity) => {
-    setSelectedEntity(entity);
-  };
-
-  const handleSave = async () => {
-    if (!selectedEntity) return;
-    // TODO: Call appropriate update API based on currentType
-    console.log('Saving:', selectedEntity);
-  };
-
   return (
     <div className="fd-container">
       
-      {/* Top Bar: Search + Entity Selector + Filters */}
+      {/* Top Bar */}
       <header className="fd-topbar">
         <div className="fd-search-wrapper">
           <span className="fd-search-icon">🔍</span>
@@ -143,6 +210,7 @@ export default function FoodieDiary() {
               setCurrentType(e.target.value as EntityType);
               setSelectedEntity(null);
               setFilters({});
+              setSearchQuery('');
             }}
             className="fd-select"
           >
@@ -155,10 +223,18 @@ export default function FoodieDiary() {
           </select>
         </div>
         
-        <button className="fd-filter-btn" onClick={() => {}}>
-          ⚙️ Filter
-        </button>
+        <div className="fd-actions">
+          <button className="fd-btn-secondary" onClick={handleNew}>+ New</button>
+          <button className="fd-filter-btn" onClick={() => {}}>⚙️ Filter</button>
+        </div>
       </header>
+
+      {/* Error Toast */}
+      {error && (
+        <div className="fd-error-toast" onClick={() => setError(null)}>
+          ⚠️ {error}
+        </div>
+      )}
 
       <div className="fd-main-split">
         
@@ -167,12 +243,12 @@ export default function FoodieDiary() {
           {selectedEntity ? (
             <div className="fd-editor">
               <div className="fd-editor-header">
-                <h3>Edit {currentType.slice(0, -1)}</h3>
+                <h3>{isCreating ? 'New' : 'Edit'} {currentType.slice(0, -1)}</h3>
                 <button className="fd-close-btn" onClick={() => setSelectedEntity(null)}>×</button>
               </div>
               
               <div className="fd-editor-form">
-                {/* Dynamic form fields based on entity type */}
+                {/* Dynamic form fields */}
                 {currentType === 'recipes' && (
                   <>
                     <label>Title</label>
@@ -182,7 +258,6 @@ export default function FoodieDiary() {
                       onChange={(e) => setSelectedEntity({...selectedEntity, title: e.target.value} as TableEntity)}
                       className="fd-input"
                     />
-                    
                     <label>Notes</label>
                     <textarea 
                       value={(selectedEntity as Recipe).notes || ''}
@@ -190,11 +265,9 @@ export default function FoodieDiary() {
                       className="fd-textarea"
                       rows={4}
                     />
-                    
                     <label>Ingredients</label>
                     <div className="fd-relation-field">
-                      {/* TODO: Add ingredient selector component */}
-                      <span className="fd-placeholder">+ Add ingredient</span>
+                      <span className="fd-placeholder">+ Add ingredient (coming soon)</span>
                     </div>
                   </>
                 )}
@@ -208,7 +281,6 @@ export default function FoodieDiary() {
                       onChange={(e) => setSelectedEntity({...selectedEntity, name: e.target.value} as TableEntity)}
                       className="fd-input"
                     />
-                    
                     <label>Notes</label>
                     <textarea 
                       value={(selectedEntity as Ingredient).notes || ''}
@@ -219,25 +291,46 @@ export default function FoodieDiary() {
                   </>
                 )}
                 
-                {/* Add other entity forms similarly */}
+                {/* Add forms for other types similarly */}
               </div>
               
               <div className="fd-editor-actions">
-                <button className="fd-btn-primary" onClick={handleSave}>💾 Save</button>
-                <button className="fd-btn-secondary" onClick={() => setSelectedEntity(null)}>Cancel</button>
+                <button 
+                  className="fd-btn-primary" 
+                  onClick={handleSave}
+                  disabled={isLoading}
+                >
+                  {isLoading ? 'Saving...' : '💾 Save'}
+                </button>
+                {selectedEntity.id && (
+                  <button 
+                    className="fd-btn-danger" 
+                    onClick={handleDelete}
+                    disabled={isLoading}
+                  >
+                    🗑️ Delete
+                  </button>
+                )}
+                <button 
+                  className="fd-btn-secondary" 
+                  onClick={() => setSelectedEntity(null)}
+                  disabled={isLoading}
+                >
+                  Cancel
+                </button>
               </div>
             </div>
           ) : (
             <div className="fd-editor-empty">
               <p>Select a row to edit</p>
-              <p className="fd-hint">Click any row in the table → edit details here</p>
+              <p className="fd-hint">Or click "+ New" to create one</p>
             </div>
           )}
         </aside>
 
         {/* RIGHT PANEL: Table View */}
         <main className="fd-table-panel">
-          {isLoading ? (
+          {isLoading && entities.length === 0 ? (
             <div className="fd-loading">Loading...</div>
           ) : (
             <div className="fd-table-wrapper">
@@ -271,7 +364,7 @@ export default function FoodieDiary() {
                         {COLUMNS[currentType].map(col => (
                           <td key={col.key}>
                             {col.key === 'ingredients' && Array.isArray((entity as Recipe).ingredients)
-                              ? (entity as Recipe).ingredients?.map(i => i.name).join(', ')
+                              ? (entity as Recipe).ingredients?.map((i: any) => i.name).join(', ')
                               : col.key === 'techniques' && Array.isArray((entity as Recipe).techniques)
                               ? (entity as Recipe).techniques?.join(', ')
                               : (entity as any)[col.key] ?? '—'}
@@ -282,7 +375,9 @@ export default function FoodieDiary() {
                   ) : (
                     <tr>
                       <td colSpan={COLUMNS[currentType].length} className="fd-empty-state">
-                        No {currentType} found. Try adjusting your search or filters.
+                        {searchQuery || Object.keys(filters).length > 0 
+                          ? 'No results. Try adjusting filters.' 
+                          : `No ${currentType} found. Click "+ New" to add one.`}
                       </td>
                     </tr>
                   )}
