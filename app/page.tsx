@@ -66,6 +66,12 @@ export default function FoodieDiary() {
         filters: Object.keys(filters).length > 0 ? filters : undefined,
         sort: sortConfig || undefined,
       });
+    // 🔍 DEBUG LOG 4: What did we receive from server?
+      console.log('📥 LOADED ENTITIES:', {
+        count: data.length,
+        firstItem: data[0], // Look at the first recipe's notes
+      });
+
       setEntities(data);
     } catch (err) {
       console.error('Failed to load entities:', err);
@@ -96,6 +102,13 @@ export default function FoodieDiary() {
   const handleSave = async () => {
     if (!selectedEntity) return;
     
+      console.log('📤 SAVING:', {
+        type: currentType,
+        id: selectedEntity.id,
+        title: (selectedEntity as Recipe).title,
+        notes: (selectedEntity as Recipe).notes,
+      });
+
     setIsLoading(true);
     try {
       if (selectedEntity.id) {
@@ -104,6 +117,7 @@ export default function FoodieDiary() {
       } else {
         // Create new
         const result = await handleCreateEntity(currentType, selectedEntity);
+        console.log('📥 CREATE RESULT:', result); // 🔍 DEBUG LOG 2
         if (result.success && result.data?.id) {
           setSelectedEntity({ ...selectedEntity, id: result.data.id });
         }
@@ -112,6 +126,7 @@ export default function FoodieDiary() {
       await loadEntities();
       setSelectedEntity(null);
     } catch (err: any) {
+      console.error('❌ SAVE ERROR:', err); // 🔍 DEBUG LOG 3
       console.error('Save failed:', err);
       setError(err.message || 'Failed to save. Please try again.');
     } finally {
@@ -259,12 +274,16 @@ export default function FoodieDiary() {
                       className="fd-input"
                     />
                     <label>Notes</label>
-                    <textarea 
-                      value={(selectedEntity as Recipe).notes || ''}
-                      onChange={(e) => setSelectedEntity({...selectedEntity, notes: e.target.value} as TableEntity)}
-                      className="fd-textarea"
-                      rows={4}
-                    />
+                      <textarea 
+                        value={(selectedEntity as Recipe).notes || ''}
+                        onChange={(e) => {
+                          // 🔍 DEBUG LOG 5: What's being typed?
+                          console.log('✏️ TYPING NOTES:', e.target.value);
+                          setSelectedEntity({...selectedEntity, notes: e.target.value} as TableEntity);
+                        }}
+                        className="fd-textarea"
+                        rows={4}
+                      />
                     <label>Ingredients</label>
                     <div className="fd-relation-field">
                       <span className="fd-placeholder">+ Add ingredient (coming soon)</span>

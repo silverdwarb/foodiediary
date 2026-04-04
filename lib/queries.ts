@@ -65,11 +65,33 @@ export async function searchIngredients(params?: { search?: string; limit?: numb
   return result.rows; // ✅ Return plain array, not QueryResult
 }
 
-export async function createRecipe(title: string) {
-  return await query(
+// lib/queries.ts
+export async function createRecipe(title: string, notes?: string) {
+  // Step 1: Insert the recipe (title only)
+  const recipeResult = await query(
     'INSERT INTO recipes (title) VALUES ($1) RETURNING id',
     [title]
   );
+  const recipeId = recipeResult.rows[0].id;
+  
+  // Step 2: Insert notes if provided (separate table)
+  if (notes && notes.trim()) {
+    await query(
+      `INSERT INTO recipe_notes (recipe_id, notes) VALUES ($1, $2)`,
+      [recipeId, notes]
+    );
+  }
+  
+  // Step 3: Return the complete recipe with notes joined
+  const fullRecipe = await query(
+    `SELECT r.id, r.title, rn.notes 
+     FROM recipes r 
+     LEFT JOIN recipe_notes rn ON r.id = rn.recipe_id 
+     WHERE r.id = $1`,
+    [recipeId]
+  );
+  
+  return fullRecipe;
 }
 
 export async function assignIngredientToRecipe(
@@ -134,16 +156,46 @@ export async function linkRecipeFlavor(recipeId: number, flavorId: number) {
 // lib/queries.ts additions
 
 // ===== RECIPES =====
+// lib/queries.ts
 export async function updateRecipe(id: number, data: Partial<{ title: string; notes: string }>) {
-  const updates = Object.entries(data)
-    .map(([key, val], i) => `${key} = $${i + 2}`)
-    .join(', ');
-  const values = [id, ...Object.values(data)];
+  // Step 1: Update the recipe title (if provided)
+  if (data.title) {
+    await query(
+      `UPDATE recipes SET title = $1 WHERE id = $2`,
+      [data.title, id]
+    );
+  }
   
-  return await query(
-    `UPDATE recipes SET ${updates} WHERE id = $1 RETURNING *`,
-    values
+  // Step 2: Handle notes via the separate recipe_notes table (UPSERT)
+  if (data.notes !== undefined) {
+    if (data.notes && data.notes.trim()) {
+      // Insert or update notes
+      await query(
+        `INSERT INTO recipe_notes (recipe_id, notes) 
+         VALUES ($1, $2)
+         ON CONFLICT (recipe_id) 
+         DO UPDATE SET notes = $2`,
+        [id, data.notes]
+      );
+    } else {
+      // If notes are empty/null, delete the notes row
+      await query(
+        `DELETE FROM recipe_notes WHERE recipe_id = $1`,
+        [id]
+      );
+    }
+  }
+  
+  // Step 3: Return the updated recipe with notes joined
+  const updatedRecipe = await query(
+    `SELECT r.id, r.title, rn.notes 
+     FROM recipes r 
+     LEFT JOIN recipe_notes rn ON r.id = rn.recipe_id 
+     WHERE r.id = $1`,
+    [id]
   );
+  
+  return updatedRecipe;
 }
 
 export async function deleteRecipe(id: number) {

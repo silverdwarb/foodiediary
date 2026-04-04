@@ -124,7 +124,7 @@ export async function handleCreateEntity(type: EntityType, data: any) {
     let result;
     switch (type) {
       case 'recipes':
-        result = await createRecipe(data.title);
+        result = await createRecipe(data.title,data.notes);
         break;
       case 'ingredients':
         result = await addIngredient(data.name);

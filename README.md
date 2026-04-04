@@ -17,7 +17,7 @@ This project is a personal mission to document every dish I have ever cooked. Be
 
 ### Phase 1: Relational Normalization
 
-* **Schema Migration:** Migrating the flexible `JSONB` logs into a structured 4-table schema (`Ingredients alterations`, `Techniques alteration`, `Equipment alteration`,) for deep analytical querying.
+* **Schema Migration:** Migrating the flexible `JSONB` logs into a structured 4-table schema (`Ingredients alterations`, `Techniques alteration`, `Equipment alteration`,) for deep analytical querying, and utilizing .md files for notation rather than text in the sql database
 * **Ingredient Systematization:** Adding metadata for ingredient usage(eg. breading, braising, flavoring,), core properties (e.g., protein, fiber, starch), and food categories(soups, salads, main courses, etc. *this is extremely tbd rn*).
 * **Deterministic Recommender:** A rules-based engine to suggest ingredient complements.
 
