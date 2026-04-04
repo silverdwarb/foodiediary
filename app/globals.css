@@ -8,6 +8,22 @@
   --accent: #0070f3;
   --accent-dim: rgba(0, 112, 243, 0.1);
 }
+/* globals.css - Add this after :root variables */
+
+/* Make the app fill the viewport */
+.fd-container {
+  display: flex;
+  flex-direction: column;
+  height: 100vh; /* ← KEY: Full viewport height */
+  min-height: 100vh;
+}
+
+/* Ensure body/html don't interfere */
+html, body {
+  height: 100%;
+  margin: 0;
+  padding: 0;
+}
 
 /* Top Bar */
 .fd-topbar {
