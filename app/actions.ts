@@ -156,12 +156,15 @@ export async function handleCreateEntity(type: EntityType, data: any) {
 // ============ UPDATE ============
 export async function handleUpdateEntity(type: EntityType, id: number, data: Partial<any>) {
   'use server';
-  
+    console.log('🔧 SERVER: handleUpdateEntity called', { type, id, data });
+
   try {
     let result;
     switch (type) {
       case 'recipes':
+        console.log('📝 Calling updateRecipe...');
         result = await updateRecipe(id, data);
+        console.log('✅ updateRecipe returned:', result);
         break;
       case 'ingredients':
         result = await updateIngredient(id, data);
@@ -182,12 +185,14 @@ export async function handleUpdateEntity(type: EntityType, id: number, data: Par
       default:
         throw new Error(`Unknown entity type: ${type}`);
     }
-    
+    console.log('🔄 Revalidating path...');
+
     revalidatePath('/');
     return { success: true, data: result.rows?.[0] };
   } catch (error: any) {
     console.error(`Failed to update ${type} ${id}:`, error);
     return { success: false, error: error.message || 'Unknown error' };
+    throw error;
   }
 }
 

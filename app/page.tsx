@@ -102,34 +102,39 @@ export default function FoodieDiary() {
   const handleSave = async () => {
     if (!selectedEntity) return;
     
-      console.log('📤 SAVING:', {
-        type: currentType,
-        id: selectedEntity.id,
-        title: (selectedEntity as Recipe).title,
-        notes: (selectedEntity as Recipe).notes,
-      });
-
+    console.log('💾 SAVE STARTED');
     setIsLoading(true);
+    
     try {
+      console.log('📤 Calling server action...');
+      
       if (selectedEntity.id) {
-        // Update existing
+        console.log('🔄 Updating existing entity:', selectedEntity.id);
         await handleUpdateEntity(currentType, selectedEntity.id, selectedEntity);
+        console.log('✅ Update successful');
       } else {
-        // Create new
+        console.log('➕ Creating new entity');
         const result = await handleCreateEntity(currentType, selectedEntity);
-        console.log('📥 CREATE RESULT:', result); // 🔍 DEBUG LOG 2
+        console.log('📥 Create result:', result);
+        
         if (result.success && result.data?.id) {
           setSelectedEntity({ ...selectedEntity, id: result.data.id });
         }
       }
-      // Refresh list and close editor
+      
+      console.log('🔄 Refreshing entities list...');
       await loadEntities();
+      console.log('✅ Entities refreshed');
+      
       setSelectedEntity(null);
+      console.log('✅ SAVE COMPLETED');
+      
     } catch (err: any) {
-      console.error('❌ SAVE ERROR:', err); // 🔍 DEBUG LOG 3
-      console.error('Save failed:', err);
+      console.error('❌ SAVE FAILED:', err);
+      console.error('Error details:', err.message);
       setError(err.message || 'Failed to save. Please try again.');
     } finally {
+      console.log('🏁 Finally block - setting isLoading to false');
       setIsLoading(false);
     }
   };
