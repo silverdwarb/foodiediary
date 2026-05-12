@@ -195,7 +195,7 @@ export async function updateRecipe(id: number, data: Partial<{ title: string; no
     [id]
   );
   
-  return updatedRecipe;
+  return updatedRecipe.rows[0];
 }
 
 export async function deleteRecipe(id: number) {
@@ -230,13 +230,14 @@ export async function searchRecipes(params?: { search?: string; filters?: any; s
 
 // ===== INGREDIENTS =====
 export async function getIngredient(id: number) {
-  return await query(
+  const result = await query(
     `SELECT i.*, inotes.notes 
      FROM ingredients i 
      LEFT JOIN ingredient_notes inotes ON i.id = inotes.ingredient_id 
      WHERE i.id = $1`,
     [id]
   );
+  return result.rows[0]; // Returns one clean object
 }
 
 export async function updateIngredient(id: number, data: Partial<{ name: string; notes: string }>) {
@@ -246,19 +247,28 @@ export async function updateIngredient(id: number, data: Partial<{ name: string;
   }
   // Upsert notes
   if (data.notes !== undefined) {
-    await query(
-      `INSERT INTO ingredient_notes (ingredient_id, notes) VALUES ($1, $2)
-       ON CONFLICT (ingredient_id) DO UPDATE SET notes = $2`,
-      [id, data.notes]
-    );
+    if (data.notes && data.notes.trim()) {
+      await query(
+        `INSERT INTO ingredient_notes (ingredient_id, notes) VALUES ($1, $2)
+         ON CONFLICT (ingredient_id) DO UPDATE SET notes = $2`,
+        [id, data.notes]
+      );
+    } else {
+      // If notes are empty/null, delete the notes row
+      await query(
+        `DELETE FROM ingredient_notes WHERE ingredient_id = $1`,
+        [id]
+      );
+    }
   }
-  return await query('SELECT * FROM ingredients WHERE id = $1', [id]);
+  const result = await query('SELECT * FROM ingredients WHERE id = $1', [id]);
+  return result.rows[0]; // Returns one clean object
 }
-
 
 // ===== TECHNIQUES =====
 export async function getTechnique(id: number) {
-  return await query('SELECT * FROM techniques WHERE id = $1', [id]);
+  const result = await query('SELECT * FROM techniques WHERE id = $1', [id]);
+  return result.rows[0]; // Returns one clean object
 }
 
 export async function updateTechnique(id: number, data: Partial<{ tech_name: string; notes: string }>) {
@@ -267,10 +277,12 @@ export async function updateTechnique(id: number, data: Partial<{ tech_name: str
     .join(', ');
   const values = [id, ...Object.values(data)];
   
-  return await query(
+  const result = await query(
     `UPDATE techniques SET ${updates} WHERE id = $1 RETURNING *`,
     values
   );
+  
+return result.rows[0]; // Returns one clean object
 }
 
 export async function searchTechniques(params?: { search?: string; limit?: number }) {
@@ -289,7 +301,8 @@ export async function searchTechniques(params?: { search?: string; limit?: numbe
 
 // ===== EQUIPMENT =====
 export async function getEquipment(id: number) {
-  return await query('SELECT * FROM equipment WHERE id = $1', [id]);
+  const result = await query('SELECT * FROM equipment WHERE id = $1', [id]);
+  return result.rows[0]; // Returns one clean object
 }
 
 export async function updateEquipment(id: number, data: Partial<{ title: string; notes: string; care: any }>) {
@@ -301,10 +314,11 @@ export async function updateEquipment(id: number, data: Partial<{ title: string;
     .join(', ');
   const values = [id, ...Object.values(data)];
   
-  return await query(
+  const result = await query(
     `UPDATE equipment SET ${updates} WHERE id = $1 RETURNING *`,
     values
   );
+  return result.rows[0]; // Returns one clean object  
 }
 
 export async function searchEquipment(params?: { search?: string; limit?: number }) {
@@ -323,7 +337,8 @@ export async function searchEquipment(params?: { search?: string; limit?: number
 
 // ===== FLAVORS =====
 export async function getFlavor(id: number) {
-  return await query('SELECT * FROM flavors WHERE id = $1', [id]);
+  const result = await query('SELECT * FROM flavors WHERE id = $1', [id]);
+  return result.rows[0]; // Returns one clean object
 }
 
 export async function searchFlavors(params?: { search?: string; limit?: number }) {
@@ -375,10 +390,11 @@ export async function updateCookLog(id: number, data: Partial<{ rating: number; 
     .join(', ');
   const values = [id, ...Object.values(data)];
   
-  return await query(
+  const result = await query(
     `UPDATE cook_logs SET ${updates} WHERE id = $1 RETURNING *`,
     values
   );
+  return result.rows[0];
 }
 
 export async function searchCookLogs(params?: { search?: string; filters?: { recipe_id?: number; rating?: number; date_from?: string; date_to?: string }; limit?: number }) {

@@ -188,7 +188,7 @@ export async function handleUpdateEntity(type: EntityType, id: number, data: Par
     console.log('🔄 Revalidating path...');
 
     revalidatePath('/');
-    return { success: true, data: result.rows?.[0] };
+    return { success: true, data:result };
   } catch (error: any) {
     console.error(`Failed to update ${type} ${id}:`, error);
     return { success: false, error: error.message || 'Unknown error' };
