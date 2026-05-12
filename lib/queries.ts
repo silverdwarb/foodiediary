@@ -9,26 +9,30 @@ export async function getFullRecipe(recipeId: number) {
       -- Get Recipe Notes
       rn.notes AS recipe_notes,
       -- Bundle ingredients into a JSON array
-      (SELECT json_agg(json_build_object('name', i.name, 'amount', ri.amount))
+      COALESCE((SELECT json_agg(json_build_object('name', i.name, 'amount', ri.amount))
        FROM recipe_ingredients ri
        JOIN ingredients i ON i.id = ri.ingredient_id
-       WHERE ri.recipe_id = r.id) AS ingredients,
+       WHERE ri.recipe_id = r.id), '[]'::json) AS ingredients,
       -- Bundle equipment into a JSON array
-      (SELECT json_agg(json_build_object('title', e.title, 'care', e.care))
+      COALESCE((SELECT json_agg(json_build_object('title', e.title, 'care', e.care))
        FROM recipe_equipment re
        JOIN equipment e ON e.id = re.equipment_id
-       WHERE re.recipe_id = r.id) AS equipment,
+       WHERE re.recipe_id = r.id), '[]'::json) AS equipment,
       -- Bundle techniques into a JSON array
-      (SELECT json_agg(t.tech_name)
+      COALESCE((SELECT json_agg(t.tech_name)
        FROM recipe_techniques rt
        JOIN techniques t ON t.id = rt.technique_id
-       WHERE rt.recipe_id = r.id) AS techniques
+       WHERE rt.recipe_id = r.id), '[]'::json) AS techniques
     FROM recipes r
     LEFT JOIN recipe_notes rn ON r.id = rn.recipe_id
     WHERE r.id = $1;
   `;
   const result = await query(queryText, [recipeId]);
-  return result.rows[0]; // Returns one clean object
+  const row = result.rows[0]; // Returns one clean object
+  if (row) {
+    row.notes = row.recipe_notes;
+  }
+  return row
 }
 
 // lib/queries.ts
