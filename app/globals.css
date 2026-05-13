@@ -415,3 +415,74 @@ html, body {
   opacity: 0.6;
   cursor: not-allowed;
 }
+
+.fd-ingredients-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-bottom: 16px;
+}
+
+.fd-ingredient-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.fd-input-small {
+  flex: 1;
+  padding: 6px 10px;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  font-size: 14px;
+}
+
+.fd-remove-btn {
+  background: #ff4444;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  width: 28px;
+  height: 28px;
+  cursor: pointer;
+  font-size: 18px;
+}
+
+.fd-modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0,0,0,0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+}
+
+.fd-modal {
+  background: white;
+  padding: 24px;
+  border-radius: 8px;
+  min-width: 300px;
+  max-width: 500px;
+}
+
+.fd-ingredient-results {
+  max-height: 200px;
+  overflow-y: auto;
+  margin: 16px 0;
+  border: 1px solid #eee;
+  border-radius: 4px;
+}
+
+.fd-ingredient-option {
+  padding: 10px;
+  cursor: pointer;
+  border-bottom: 1px solid #eee;
+}
+
+.fd-ingredient-option:hover {
+  background: #f5f5f5;
+}

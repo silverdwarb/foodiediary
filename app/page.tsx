@@ -5,7 +5,8 @@ import {
   fetchEntityById,
   handleCreateEntity, 
   handleUpdateEntity,
-  handleDeleteEntity 
+  handleDeleteEntity, 
+  handleAddIngredientToRecipe
 } from './actions';
 import { EntityType, TableEntity, Recipe, Ingredient, Technique, Equipment, Flavor, CookLog } from '@/lib/types';
 import './globals.css';
@@ -55,6 +56,10 @@ export default function FoodieDiary() {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [isCreating, setIsCreating] = useState(false);
+  const [showIngredientPicker, setShowIngredientPicker] = useState(false);
+  const [ingredientSearch, setIngredientSearch] = useState('');
+  const [availableIngredients, setAvailableIngredients] = useState<any[]>([]);
+  
 
   // ✅ Fetch entities from Server Action
   const loadEntities = useCallback(async () => {
@@ -80,6 +85,16 @@ export default function FoodieDiary() {
       setIsLoading(false);
     }
   }, [currentType, searchQuery, filters, sortConfig]);
+
+  useEffect(() => {
+    const loadIngredients = async () => {
+      if (showIngredientPicker) {
+        const ings = await fetchEntities('ingredients', { limit: 100 });
+        setAvailableIngredients(ings);
+      }
+    };
+    loadIngredients();
+}, [showIngredientPicker]);
 
   // ✅ Load entities when dependencies change
   useEffect(() => {
@@ -110,7 +125,19 @@ export default function FoodieDiary() {
       
       if (selectedEntity.id) {
         console.log('🔄 Updating existing entity:', selectedEntity.id);
+        
+        // First update the main recipe data
         await handleUpdateEntity(currentType, selectedEntity.id, selectedEntity);
+        
+        // Then sync ingredients separately
+        if (currentType === 'recipes' && (selectedEntity as Recipe).ingredients) {
+          console.log('🥕 Syncing ingredients:', (selectedEntity as Recipe).ingredients);
+          for (const ing of (selectedEntity as Recipe).ingredients) {
+            if (ing.ingredientId) {
+              await handleAddIngredientToRecipe(selectedEntity.id, ing.ingredientId, ing.amount || '');
+            }
+          }
+        }
         console.log('✅ Update successful');
       } else {
         console.log('➕ Creating new entity');
@@ -119,6 +146,15 @@ export default function FoodieDiary() {
         
         if (result.success && result.data?.id) {
           setSelectedEntity({ ...selectedEntity, id: result.data.id });
+          
+          // If creating a new recipe with ingredients, sync them after creation
+          if (currentType === 'recipes' && (selectedEntity as Recipe).ingredients) {
+            for (const ing of (selectedEntity as Recipe).ingredients) {
+              if (ing.ingredientId) {
+                await handleAddIngredientToRecipe(result.data.id, ing.ingredientId, ing.amount || '');
+              }
+            }
+          }
         }
       }
       
@@ -290,9 +326,82 @@ export default function FoodieDiary() {
                         rows={4}
                       />
                     <label>Ingredients</label>
-                    <div className="fd-relation-field">
-                      <span className="fd-placeholder">+ Add ingredient (coming soon)</span>
+                    <div className="fd-ingredients-list">
+                      {/* Display currently added ingredients */}
+                      {(selectedEntity as Recipe).ingredients?.map((ing: any, idx: number) => (
+                        <div key={idx} className="fd-ingredient-row">
+                          <span>{ing.name}</span>
+                          <input
+                            type="text"
+                            value={ing.amount || ''}
+                            onChange={(e) => {
+                              const newIngredients = [...(selectedEntity as Recipe).ingredients];
+                              newIngredients[idx] = { ...ing, amount: e.target.value };
+                              setSelectedEntity({ ...selectedEntity, ingredients: newIngredients } as TableEntity);
+                            }}
+                            placeholder="Amount (e.g., 2 cups)"
+                            className="fd-input-small"
+                          />
+                          <button
+                            onClick={() => {
+                              const newIngredients = (selectedEntity as Recipe).ingredients?.filter((_: any, i: number) => i !== idx);
+                              setSelectedEntity({ ...selectedEntity, ingredients: newIngredients } as TableEntity);
+                            }}
+                            className="fd-remove-btn"
+                          >
+                            
+                          </button>
+                        </div>
+                      ))}
+                      
+                      {/* Add Ingredient Button */}
+                      <button
+                        onClick={() => setShowIngredientPicker(true)}
+                        className="fd-btn-secondary"
+                      >
+                        + Add Ingredient
+                      </button>
                     </div>
+
+                    {/* Ingredient Picker Modal */}
+                    {showIngredientPicker && (
+                      <div className="fd-modal-overlay" onClick={() => setShowIngredientPicker(false)}>
+                        <div className="fd-modal" onClick={(e) => e.stopPropagation()}>
+                          <h4>Select Ingredient</h4>
+                          <input
+                            type="text"
+                            placeholder="Search ingredients..."
+                            value={ingredientSearch}
+                            onChange={(e) => setIngredientSearch(e.target.value)}
+                            className="fd-input"
+                          />
+                          <div className="fd-ingredient-results">
+                            {availableIngredients
+                              .filter((ing: any) => ing.name.toLowerCase().includes(ingredientSearch.toLowerCase()))
+                              .map((ing: any) => (
+                                <div
+                                  key={ing.id}
+                                  className="fd-ingredient-option"
+                                  onClick={() => {
+                                    const currentIngredients = (selectedEntity as Recipe).ingredients || [];
+                                    setSelectedEntity({
+                                      ...selectedEntity,
+                                      ingredients: [...currentIngredients, { ingredientId: ing.id, name: ing.name, amount: '' }]
+                                    } as TableEntity);
+                                    setShowIngredientPicker(false);
+                                    setIngredientSearch('');
+                                  }}
+                                >
+                                  {ing.name}
+                                </div>
+                              ))}
+                          </div>
+                          <button onClick={() => setShowIngredientPicker(false)} className="fd-btn-secondary">
+                            Cancel
+                          </button>
+                        </div>
+                      </div>
+                    )}
                   </>
                 )}
                 
